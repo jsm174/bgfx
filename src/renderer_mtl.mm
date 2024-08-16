@@ -3518,6 +3518,27 @@ BX_STATIC_ASSERT(BX_COUNTOF(s_accessNames) == Access::Count, "Invalid s_accessNa
 				if (NULL == m_metalLayer)
 #	if BX_PLATFORM_IOS || BX_PLATFORM_VISIONOS
 				{
+					if (NULL != NSClassFromString(@"UIView"))
+					{
+						UIView *view = (UIView *)_nwh;
+
+						if (NULL != view
+							&&  [view isKindOfClass:NSClassFromString(@"UIView")])
+						{
+							for (CALayer* layer in view.layer.sublayers)
+							{
+								if ([layer isKindOfClass:NSClassFromString(@"CAMetalLayer")])
+								{
+									m_metalLayer = (CAMetalLayer*)layer;
+									break;
+								}
+							}
+						}
+					}
+				}
+
+				if (NULL == m_metalLayer)
+				{
 					CAMetalLayer* metalLayer = (CAMetalLayer*)_nwh;
 					if (NULL == metalLayer
 						|| ![metalLayer isKindOfClass:NSClassFromString(@"CAMetalLayer")])
