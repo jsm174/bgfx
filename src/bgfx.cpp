@@ -2024,6 +2024,7 @@ namespace bgfx
 		CAPS_FLAGS(BGFX_CAPS_VERTEX_ATTRIB_UINT10),
 		CAPS_FLAGS(BGFX_CAPS_VIDEO_DECODE),
 		CAPS_FLAGS(BGFX_CAPS_VIEWPORT_LAYER_ARRAY),
+		CAPS_FLAGS(BGFX_CAPS_WAITABLE_SWAPCHAIN),
 #undef CAPS_FLAGS
 	};
 
@@ -3381,6 +3382,15 @@ namespace bgfx
 
 	///
 	void rendererDestroy(RendererContextI* _renderCtx);
+
+	bool Context::waitForSwapchain()
+	{
+		if (m_rendererInitialized)
+		{
+			return m_renderCtx->waitForSwapchain();
+		}
+		return false;
+	}
 
 	void Context::flip()
 	{
@@ -5741,6 +5751,12 @@ namespace bgfx
 		s_ctx->end(_encoder);
 	}
 
+	bool waitForSwapchain()
+	{
+		BGFX_CHECK_API_THREAD();
+		return s_ctx->waitForSwapchain();
+	}
+
 	uint32_t frame(uint8_t _flags)
 	{
 		BGFX_CHECK_API_THREAD();
@@ -7971,6 +7987,7 @@ static_assert( (0
 	| BGFX_CAPS_PRIMITIVE_ID
 	| BGFX_CAPS_VIEWPORT_LAYER_ARRAY
 	| BGFX_CAPS_DRAW_INDIRECT_COUNT
+	| BGFX_CAPS_WAITABLE_SWAPCHAIN
 	) == (0
 	^ BGFX_CAPS_BLEND_INDEPENDENT
 	^ BGFX_CAPS_COMPUTE
@@ -7990,6 +8007,7 @@ static_assert( (0
 	^ BGFX_CAPS_PRIMITIVE_ID
 	^ BGFX_CAPS_VIEWPORT_LAYER_ARRAY
 	^ BGFX_CAPS_DRAW_INDIRECT_COUNT
+	^ BGFX_CAPS_WAITABLE_SWAPCHAIN
 	) );
 
 #undef FLAGS_MASK_TEST
