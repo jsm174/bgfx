@@ -3311,6 +3311,11 @@ namespace bgfx { namespace gl
 			return false;
 		}
 
+		bool waitForSwapchain() override
+		{
+			return false;
+		}
+
 		void flip() override
 		{
 			if (m_flip)
