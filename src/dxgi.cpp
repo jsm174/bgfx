@@ -488,6 +488,8 @@ namespace bgfx
 		IDXGIFactory5* factory5;
 		hr = m_factory->QueryInterface(IID_IDXGIFactory5, (void**)&factory5);
 
+		BX_ASSERT(!_scd.waitable || DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL == _scd.swapEffect || DXGI_SWAP_EFFECT_FLIP_DISCARD == _scd.swapEffect, "Invalid flip mode for a waitable swapchain: %d", _scd.swapEffect);
+
 		if (SUCCEEDED(hr) )
 		{
 			BOOL allowTearing = false;
@@ -568,7 +570,7 @@ namespace bgfx
 		}
 #endif // BX_PLATFORM_WINDOWS
 
-		if (SUCCEEDED(hr) )
+		if (SUCCEEDED(hr) && !_scd.waitable)
 		{
 			IDXGIDevice1* dxgiDevice1;
 			_device->QueryInterface(IID_IDXGIDevice1, (void**)&dxgiDevice1);
@@ -737,6 +739,14 @@ namespace bgfx
 		IDXGIFactory5* factory5;
 		hr = m_factory->QueryInterface(IID_IDXGIFactory5, (void**)&factory5);
 
+#if BX_PLATFORM_WINDOWS
+		BX_ASSERT(!_scd.waitable || DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL == _scd.swapEffect || DXGI_SWAP_EFFECT_FLIP_DISCARD == _scd.swapEffect, "Invalid flip mode for a waitable swapchain: %d", _scd.swapEffect);
+		scdFlags |= _scd.waitable
+			? DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
+			: 0
+			;
+#endif
+
 		if (SUCCEEDED(hr))
 		{
 			BOOL allowTearing = false;
@@ -746,12 +756,6 @@ namespace bgfx
 			BX_TRACE("Allow tearing is %ssupported.", allowTearing ? "" : "not ");
 
 			scdFlags |= allowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
-			scdFlags |= (_scd.waitable
-				&& (DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL == _scd.swapEffect
-				 || DXGI_SWAP_EFFECT_FLIP_DISCARD    == _scd.swapEffect) )
-				? DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT
-				: 0
-				;
 
 			DX_RELEASE_I(factory5);
 		}
