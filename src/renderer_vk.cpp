@@ -1881,6 +1881,21 @@ VK_IMPORT_INSTANCE
 					&& swapchainMaintenance1Features.swapchainMaintenance1
 					;
 
+				bool shaderOutputLayerCore = false;
+				if (m_instanceApiVersion >= VK_API_VERSION_1_2
+				&&  NULL != vkGetPhysicalDeviceFeatures2KHR)
+				{
+					VkPhysicalDeviceVulkan12Features features12;
+					features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+					features12.pNext = NULL;
+					VkPhysicalDeviceFeatures2KHR deviceFeatures2;
+					deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR;
+					deviceFeatures2.pNext = &features12;
+					vkGetPhysicalDeviceFeatures2KHR(m_physicalDevice, &deviceFeatures2);
+					shaderOutputLayerCore = !!features12.shaderOutputLayer;
+					BX_TRACE("Vulkan 1.2 shaderOutputLayer: %s", shaderOutputLayerCore ? "yes" : "no");
+				}
+
 				const bool indirectDrawSupport = true
 					&& m_deviceFeatures.multiDrawIndirect
 					&& m_deviceFeatures.drawIndirectFirstInstance
@@ -1913,7 +1928,7 @@ VK_IMPORT_INSTANCE
 
 				g_caps.supported |= 0
 					| (s_extension[Extension::EXT_conservative_rasterization ].m_supported ? BGFX_CAPS_CONSERVATIVE_RASTER  : 0)
-					| (s_extension[Extension::EXT_shader_viewport_index_layer].m_supported ? BGFX_CAPS_VIEWPORT_LAYER_ARRAY : 0)
+					| (s_extension[Extension::EXT_shader_viewport_index_layer].m_supported || shaderOutputLayerCore ? BGFX_CAPS_VIEWPORT_LAYER_ARRAY : 0)
 					| (s_extension[Extension::KHR_draw_indirect_count        ].m_supported && indirectDrawSupport ? BGFX_CAPS_DRAW_INDIRECT_COUNT : 0)
 					| (s_extension[Extension::KHR_fragment_shading_rate      ].m_supported ? BGFX_CAPS_VARIABLE_RATE_SHADING : 0)
 					| (s_extension[Extension::KHR_present_id].m_supported && s_extension[Extension::KHR_present_wait].m_supported ? BGFX_CAPS_WAITABLE_SWAPCHAIN : 0)
