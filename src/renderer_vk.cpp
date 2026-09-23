@@ -17,6 +17,10 @@
 #	import <Metal/Metal.h>
 #endif // BX_PLATFORM_OSX
 
+#if BX_PLATFORM_ANDROID
+extern "C" void* bgfx_android_vulkan_library() __attribute__( (weak) );
+#endif // BX_PLATFORM_ANDROID
+
 namespace bgfx { namespace vk
 {
 	static char s_viewName[BGFX_CONFIG_MAX_VIEWS][BGFX_CONFIG_MAX_VIEW_NAME];
@@ -1375,17 +1379,30 @@ VK_IMPORT_DEVICE
 				|| NULL != findModule("Nvda.Graphics.Interception.dll")
 				);
 
-			m_vulkan1Dll = bx::dlopen(
+			m_vulkan1Dll = NULL;
+			m_vulkan1DllExternal = false;
+#if BX_PLATFORM_ANDROID
+			if (NULL != bgfx_android_vulkan_library)
+			{
+				m_vulkan1Dll = bgfx_android_vulkan_library();
+				m_vulkan1DllExternal = NULL != m_vulkan1Dll;
+			}
+#endif // BX_PLATFORM_ANDROID
+
+			if (NULL == m_vulkan1Dll)
+			{
+				m_vulkan1Dll = bx::dlopen(
 #if BX_PLATFORM_WINDOWS
-				"vulkan-1.dll"
+					"vulkan-1.dll"
 #elif BX_PLATFORM_ANDROID
-				"libvulkan.so"
+					"libvulkan.so"
 #elif BX_PLATFORM_OSX
-				"libMoltenVK.dylib"
+					"libMoltenVK.dylib"
 #else
-				"libvulkan.so.1"
+					"libvulkan.so.1"
 #endif // BX_PLATFORM_*
-				);
+					);
+			}
 
 			if (NULL == m_vulkan1Dll)
 			{
@@ -2536,7 +2553,10 @@ VK_IMPORT_DEVICE
 				[[fallthrough]];
 
 			case ErrorState::LoadedVulkan1:
-				bx::dlclose(m_vulkan1Dll);
+				if (!m_vulkan1DllExternal)
+				{
+					bx::dlclose(m_vulkan1Dll);
+				}
 				m_vulkan1Dll  = NULL;
 				m_allocatorCb = NULL;
 				unloadRenderDoc(m_renderDocDll);
@@ -2636,7 +2656,10 @@ VK_IMPORT_DEVICE
 
 			vkDestroyInstance(m_instance, m_allocatorCb);
 
-			bx::dlclose(m_vulkan1Dll);
+			if (!m_vulkan1DllExternal)
+			{
+				bx::dlclose(m_vulkan1Dll);
+			}
 			m_vulkan1Dll  = NULL;
 			m_allocatorCb = NULL;
 			unloadRenderDoc(m_renderDocDll);
@@ -5298,6 +5321,7 @@ VK_IMPORT_DEVICE
 
 		void* m_renderDocDll;
 		void* m_vulkan1Dll;
+		bool  m_vulkan1DllExternal;
 
 		IndexBufferVK  m_indexBuffers[BGFX_CONFIG_MAX_INDEX_BUFFERS];
 		VertexBufferVK m_vertexBuffers[BGFX_CONFIG_MAX_VERTEX_BUFFERS];
