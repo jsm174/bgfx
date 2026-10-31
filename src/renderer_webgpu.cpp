@@ -547,6 +547,16 @@ namespace bgfx { namespace wgpu
 		return 0 <= idx && s_feature[idx].supported;
 	}
 
+	static WGPUTextureFormat toStorageFormat(WGPUTextureFormat _format)
+	{
+		switch (_format)
+		{
+		case WGPUTextureFormat_RGBA8UnormSrgb: return WGPUTextureFormat_RGBA8Unorm;
+		case WGPUTextureFormat_BGRA8UnormSrgb: return WGPUTextureFormat_BGRA8Unorm;
+		default: return _format;
+		}
+	}
+
 	static bool isMipGenFormat(TextureFormat::Enum _format)
 	{
 		return false
@@ -3563,7 +3573,7 @@ WGPU_IMPORT
 						, shaderBind.binding
 						, shaderBind.shaderStage
 						, s_storageTextureAccess[bind.m_access]
-						, m_textures[bind.m_idx].m_fmt
+						, toStorageFormat(m_textures[bind.m_idx].m_fmt)
 						, shaderBind.viewDimension
 						);
 					break;
@@ -5373,6 +5383,13 @@ WGPU_IMPORT
 				}
 			}
 
+			// sRGB formats do not support storage: create the texture with the linear format and view it as sRGB
+			const WGPUTextureFormat createFormat = computeWrite ? toStorageFormat(m_fmt) : m_fmt;
+			if (createFormat != m_fmt)
+			{
+				viewFormat = m_fmt;
+			}
+
 			const uint32_t sampleCount = needResolve ? 1 : m_msaaCount;
 
 			WGPUTextureDescriptor textureDesc =
@@ -5397,7 +5414,7 @@ WGPU_IMPORT
 					.height = m_height,
 					.depthOrArrayLayers = depthOrArrayLayers,
 				},
-				.format          = m_fmt,
+				.format          = createFormat,
 				.mipLevelCount   = 1 < sampleCount ? 1u : uint32_t(m_numMips),
 				.sampleCount     = sampleCount,
 				.viewFormatCount = WGPUTextureFormat_Undefined != viewFormat ? 1u : 0u,
@@ -5408,6 +5425,7 @@ WGPU_IMPORT
 
 			if (needResolve)
 			{
+				textureDesc.format          = m_fmt;
 				textureDesc.usage           = 0
 					| WGPUTextureUsage_RenderAttachment
 					| (false
@@ -5424,7 +5442,8 @@ WGPU_IMPORT
 				textureDesc.viewFormats     = NULL;
 				m_textureMsaa = WGPU_CHECK(wgpuDeviceCreateTexture(s_renderWGPU->m_device, &textureDesc) );
 
-				if (WGPUTextureFormat_Undefined != viewFormat)
+				if (WGPUTextureFormat_Undefined != viewFormat
+				&&  m_fmt != viewFormat)
 				{
 					textureDesc.format = viewFormat;
 					m_textureMsaaAlt = WGPU_CHECK(wgpuDeviceCreateTexture(s_renderWGPU->m_device, &textureDesc) );
@@ -5805,7 +5824,9 @@ WGPU_IMPORT
 			? WGPUTextureFormat_Stencil8
 			: depthOnly
 			? WGPUTextureFormat_Undefined
-			: _storage || WGPUTextureFormat_Undefined == _format
+			: _storage
+			? toStorageFormat(m_fmt)
+			: WGPUTextureFormat_Undefined == _format
 			? m_fmt
 			: _format
 			;
