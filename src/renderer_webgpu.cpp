@@ -5747,9 +5747,11 @@ WGPU_IMPORT
 
 		WGPUSampler sampler = s_renderWGPU->m_samplerStateCache.find(key);
 
-		const bool disableAniso = true
-			&& (BGFX_SAMPLER_MIN_POINT == (samplerFlags&BGFX_SAMPLER_MIN_POINT) )
-			&& (BGFX_SAMPLER_MAG_POINT == (samplerFlags&BGFX_SAMPLER_MAG_POINT) )
+		// WebGPU only allows anisotropic filtering when min, mag and mip filters are all linear
+		const bool disableAniso = false
+			|| (BGFX_SAMPLER_MIN_POINT == (samplerFlags&BGFX_SAMPLER_MIN_MASK) )
+			|| (BGFX_SAMPLER_MAG_POINT == (samplerFlags&BGFX_SAMPLER_MAG_MASK) )
+			|| (BGFX_SAMPLER_MIP_POINT == (samplerFlags&BGFX_SAMPLER_MIP_MASK) )
 			;
 
 		if (NULL == sampler)
