@@ -6753,7 +6753,12 @@ WGPU_IMPORT
 	{
 		m_result.reset();
 
+#if BX_PLATFORM_EMSCRIPTEN
+		// Browsers reject the WGPU_QUERY_SET_INDEX_UNDEFINED end of pass index used to write a single timestamp
+		m_supported = false;
+#else
 		m_supported = isFeatureSupported(WGPUFeatureName_TimestampQuery);
+#endif
 
 		if (!m_supported)
 		{
