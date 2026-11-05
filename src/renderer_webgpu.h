@@ -696,6 +696,7 @@ namespace wgpu {
 		bool createSurface(void* _nwh);
 
 		bool configure(const SwapChain& _desc);
+		bool createAttachments();
 		WGPUTextureView createTextureView();
 		void acquire();
 		void present();
